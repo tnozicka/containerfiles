@@ -1,2 +1,4 @@
 FROM jenkins:latest
-RUN chmod 777 -R /var/jenkins_home && ls -ld /var/jenkins_home
+USER root
+RUN chmod 777 -R /var/jenkins_home/
+USER jenkins
