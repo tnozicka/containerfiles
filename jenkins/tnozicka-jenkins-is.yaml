@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ImageStream
+metadata:
+  name: "tnozicka-jenkins"
+spec:
+  tags:
+  - 
+    anotations:
+      description: Provides Jenkins server
+      iconClass: icon-jenkins
+      tags: jenkins
+    from:
+      kind: DockerImage
+      name: docker.io/tnozicka/jenkins:latest
+    name: latest
+    importPolicy:
+      scheduled: true
