@@ -1,0 +1,2 @@
+FROM fabric8/maven-builder
+RUN version="v1.2.0" commitId="2e62fab" && curl -L https://github.com/openshift/origin/releases/download/${version}/openshift-origin-client-tools-${version}-${commitId}-linux-64bit.tar.gz | tar -f - -x -z --strip-components=1 -C /usr/local/bin/ openshift-origin-client-tools-${version}-${commitId}-linux-64bit/oc
