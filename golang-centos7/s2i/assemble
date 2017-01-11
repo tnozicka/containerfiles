@@ -1,0 +1,72 @@
+#!/bin/bash
+
+set -e
+
+source ${STI_SCRIPTS_PATH}/lib/nss_wrapper ${HOME}
+nss_wrapper ${HOME}
+
+echo
+echo "===> Build started at $(date)"
+echo
+START=$SECONDS
+
+# Unconditionally print elapsed build time at exit
+function finish {
+  echo "===> Elapsed time: $(($SECONDS - $START)) seconds"
+}
+trap finish EXIT
+
+# restore build artifacts
+#if [ "$(ls /tmp/s2i/artifacts/ 2>/dev/null)" ]; then
+#    mv /tmp/s2i/artifacts/* ${HOME}/.
+#fi
+
+
+echo "---> Preparing source..."
+APP_URI_FILE=.goselfimporturi
+if [ -z "${APP_URI+set}" ]; then
+    if [ -f /tmp/src/${APP_URI_FILE} ]; then
+        APP_URI=$(<${APP_URI_FILE})
+        echo "Using APP_URI_FILE \"${APP_URI_FILE}\" (APP_URI=\"${APP_URI}\""
+    else
+        cat << EOF
+---> ERROR
+You must set APP_URI environment variable or have file named "${APP_URI_FILE}" in your application root folder.
+
+This is beacause in Golang you reference your libraries by URI and your program must reside on corresponding path withing your GOPATH.
+
+Not specifying this value would make your program not buildable or in the worst case composed of files you have locally and remotely. 
+
+We're sorry but that's not a change we are able to take. Please specify APP_URI when running S2I. You can get an inspiration from our sample invocation:
+
+$ s2i build . -e APP_URI=github.com/tnozicka/openshift-letsencrypt tnozicka/golang-centos7 golang-helloworld --run
+
+EOF
+        exit 1
+    fi
+else
+    echo "Using APP_URI (APP_URI=${APP_URI}"
+fi
+
+SOURCE=${GOPATH}/src/${APP_URI}
+mkdir -p ${SOURCE} 
+cp -Rf /tmp/src/. ${SOURCE}
+cd ${SOURCE}
+
+if [ ! -d "./vendor/" ]; then
+    echo "---> Downloading dependencies..."
+	go get -v ./...
+else
+    echo "---> Downloading dependencies skipped because 'vendor/' directory is present."
+fi
+
+echo "---> Building application source..."
+go install -v 
+
+mkdir ${HOME}/bin
+NAME=$(basename ${APP_URI} || exit 1)
+ln -s ${GOPATH}/bin/${NAME} ${HOME}/bin/app
+
+echo
+echo "===> Build completed at $(date)"
+
