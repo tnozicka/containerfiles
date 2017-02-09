@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 
 source ${STI_SCRIPTS_PATH}/lib/nss_wrapper ${HOME}
