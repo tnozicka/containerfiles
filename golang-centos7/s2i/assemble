@@ -65,7 +65,7 @@ go install -v
 
 mkdir ${HOME}/bin
 NAME=$(basename ${APP_URI} || exit 1)
-ln -s ${GOPATH}/bin/${NAME} ${HOME}/bin/app
+ln ${GOPATH}/bin/${NAME} ${HOME}/bin/app
 
 echo
 echo "===> Build completed at $(date)"
