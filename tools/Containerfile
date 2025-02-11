@@ -1,0 +1,7 @@
+FROM docker.io/library/fedora:41
+
+RUN microdnf install -y procps-ng inotify-tools && \
+    microdnf clean all && \
+    rm -rf /var/cache/dnf/*
+
+ENTRYPOINT ["/usr/bin/bash"]
