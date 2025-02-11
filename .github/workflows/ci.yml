@@ -79,7 +79,7 @@ jobs:
             continue;
           fi
           
-          image_ref="${repo_ref}:${image_tag}-${{ github.run_number }}-${{ github.run_attempt }}"
+          image_ref="${repo_ref}:${image_tag}"
           if [[ -z "${from_tag}" ]]; then
             from_ref=""
           else
