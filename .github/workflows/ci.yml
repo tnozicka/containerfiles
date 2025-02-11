@@ -24,6 +24,7 @@ permissions:
 env:
   image_platforms: 'linux/amd64,linux/arm64'
   retention_days: 90
+  CI_PROMOTE: false
 
 jobs:
   images:
@@ -61,7 +62,6 @@ jobs:
         
         echo '${{ secrets.QUAY_PASSWORD }}' | buildah login 'quay.io/tnozicka/images' -u='${{ secrets.QUAY_USER }}' --password-stdin
 
-
     - name: Build images
       shell: bash
       run: |
@@ -93,8 +93,8 @@ jobs:
           --manifest="${image_ref}-${{ github.run_number }}-${{ github.run_attempt }}" \
           "${context_dir}"
         
-          if [[ "${CI_PROMOTE+x}" == "true" ]]; then
+          if [[ "${{ env.CI_PROMOTE }}" == "true" ]]; then
             buildah push --digestfile="${digestfile}" "${image_ref}-${{ github.run_number }}-${{ github.run_attempt }}" "${image_ref}"
-            echo '' | cat "\${digestfile}" -
+            echo '' | cat "${digestfile}" -
           fi
         done < image-spec.csv
