@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - '**'
+    types:
+    - opened
+    - edited
+    - reopened
+    - synchronize
+  merge_group:
+  schedule:
+  - cron:  '0 19 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  image_platforms: 'linux/amd64,linux/arm64'
+  retention_days: 90
+
+jobs:
+  images:
+    name: Build images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+    - name: Install qemu-user-static
+      shell: bash
+      run: |
+        set -euEo pipefail +x
+        shopt -s inherit_errexit
+        
+        sudo apt-get update
+        sudo apt-get install qemu-user-static
+
+    - name: Check out code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for all branches and tags so git describe works.
+
+    - name: Check out code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for all branches and tags so git describe works.
+
+    - name: Configure promotions
+      shell: bash
+      if: ${{ contains(fromJSON('["push", "schedule"]'), github.event_name) }}
+      run: |
+        set -euEo pipefail +x
+        shopt -s inherit_errexit
+        
+        echo "CI_PROMOTE=true" | tee -a ${GITHUB_ENV}
+        
+        echo '${{ secrets.QUAY_PASSWORD }}' | buildah login 'quay.io/tnozicka/images' -u='${{ secrets.QUAY_USER }}' --password-stdin
+
+
+    - name: Build images
+      shell: bash
+      run: |
+        set -euExo pipefail
+        shopt -s inherit_errexit
+        
+        repo_ref='quay.io/tnozicka/images'
+        git_revision="$( git rev-parse HEAD )"
+        
+        digestfile="$( mktemp )"
+        skip_header=true
+        while IFS=, read -r context_dir image_tag from_tag; do
+          if "${skip_header}"; then
+            skip_header=false
+            continue;
+          fi
+          
+          image_ref="${repo_ref}:${image_tag}-${{ github.run_number }}-${{ github.run_attempt }}"
+          if [[ -z "${from_tag}" ]]; then
+            from_ref=""
+          else
+            from_ref="${repo_ref}:${from_tag}-${{ github.run_number }}-${{ github.run_attempt }}"
+          fi
+        
+          time buildah build --squash --format=docker \
+          --platform='${{ env.image_platforms }}' \
+          --label="org.opencontainers.image.revision=${git_revision}" \
+          --from="${from_ref}" \
+          --manifest="${image_ref}-${{ github.run_number }}-${{ github.run_attempt }}" \
+          "${context_dir}"
+        
+          if [[ "${CI_PROMOTE+x}" == "true" ]]; then
+            buildah push --digestfile="${digestfile}" "${image_ref}-${{ github.run_number }}-${{ github.run_attempt }}" "${image_ref}"
+            echo '' | cat "\${digestfile}" -
+          fi
+        done < image-spec.csv
