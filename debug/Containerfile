@@ -1,6 +1,6 @@
 FROM registry.fedoraproject.org/fedora-minimal:42
 
-RUN dnf install -y procps-ng inotify-tools stress stress-ng vim vim-powerline powerline tmux tmux-powerline && \
+RUN dnf install -y procps-ng inotify-tools stress stress-ng vim vim-powerline powerline tmux tmux-powerline tree && \
     dnf clean all && \
     rm -rf /var/cache/dnf/*
 
