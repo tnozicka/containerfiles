@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora-minimal:42
+FROM registry.fedoraproject.org/fedora-minimal:43
 
 RUN dnf install -y procps-ng inotify-tools stress stress-ng vim vim-powerline powerline tmux tmux-powerline tree && \
     dnf clean all && \
