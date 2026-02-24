@@ -1,4 +1,0 @@
-FROM debug
-
-# This is a closed sourced binary, so the insecure installation method doesn't make a difference.
-RUN curl -fsSL https://claude.ai/install.sh | bash

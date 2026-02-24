@@ -1,0 +1,18 @@
+FROM debug
+
+RUN dnf install -y hugo npm helm dos2unix yamllint pip && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf/*
+
+ENV HOME=/home/claude-install
+ENV PATH="${HOME}/.local/bin:${PATH}"
+
+# This is a closed sourced binary, so the insecure installation method doesn't make a difference.
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+ENV HOME=/home/claude
+# Make claude happy and add a dummy path at the end.
+ENV PATH="${PATH}:${HOME}/.local/bin"
+
+WORKDIR /src
+ENTRYPOINT ["claude"]
