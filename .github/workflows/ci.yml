@@ -68,6 +68,12 @@ jobs:
         set -euExo pipefail
         shopt -s inherit_errexit
         
+        if [[ "${{ env.CI_PROMOTE }}" == "true" ]]; then
+          image_platforms='${{ env.image_platforms }}'
+        else
+          image_platforms='linux/amd64'
+        fi
+        
         repo_ref='quay.io/tnozicka/images'
         git_revision="$( git rev-parse HEAD )"
         
@@ -87,7 +93,7 @@ jobs:
           fi
         
           time buildah build --squash --format=docker \
-          --platform='${{ env.image_platforms }}' \
+          --platform="${image_platforms}" \
           --label="org.opencontainers.image.revision=${git_revision}" \
           --from="${from_ref}" \
           --manifest="${image_ref}-${{ github.run_number }}-${{ github.run_attempt }}" \
