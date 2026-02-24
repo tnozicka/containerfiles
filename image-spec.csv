@@ -1,4 +1,4 @@
 context_dir,image_tag,from_tag
 ./tools,tools,
 ./debug,debug,
-./claude-tools,claude,debug
+./claude,claude,debug
