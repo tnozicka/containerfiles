@@ -6,6 +6,9 @@ RUN dnf install -y hugo npm helm dos2unix yamllint pip && \
 
 ENV HOME=/home/claude-install
 ENV PATH="${HOME}/.local/bin:${PATH}"
+ENV GOTOOLCHAIN=auto
+
+RUN tmp_dir="$( mktemp -d )" && cd "${tmp_dir}" && go mod init fake && go get go@latest && go version
 
 # This is a closed sourced binary, so the insecure installation method doesn't make a difference.
 RUN curl -fsSL https://claude.ai/install.sh | bash
