@@ -1,6 +1,6 @@
 FROM debug
 
-RUN dnf install -y hugo npm helm dos2unix yamllint pip && \
+RUN dnf install -y hugo npm helm dos2unix yamllint pip buildah podman && \
     dnf clean all && \
     rm -rf /var/cache/dnf/*
 
