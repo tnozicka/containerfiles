@@ -1,0 +1,9 @@
+FROM to-be-replaced-by-local-ref/golang:base
+
+COPY ./version.sh /tmp/
+COPY *.sum /tmp/
+
+RUN source /tmp/version.sh && \
+    source /usr/local/lib/glasswing-images/helpers.sh && \
+    install-golang "${VERSION}" "$( resolve-arch "$(arch)" )" && \
+    rm -rf /tmp/*

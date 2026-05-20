@@ -1,0 +1,14 @@
+FROM to-be-replaced-by-local-ref/base:fedora-44
+
+ENV GOPATH=/go \
+    GOROOT=/usr/local/go \
+    GOTOOLCHAIN=local
+ENV PATH=${PATH}:${GOROOT}/bin:${GOPATH}/bin
+
+COPY ./bin/* /usr/local/libexec/glasswing-images/
+COPY ./lib/* /usr/local/lib/glasswing-images/
+
+RUN microdnf update -y && \
+    microdnf install -y git make && \
+    microdnf clean all && \
+    rm -rf /var/cache/dnf/*
