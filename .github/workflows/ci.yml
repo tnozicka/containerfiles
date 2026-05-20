@@ -22,7 +22,7 @@ permissions:
   contents: read
 
 env:
-  image_platforms: 'linux/amd64,linux/arm64'
+  IMAGE_PLATFORM: 'linux/amd64,linux/arm64'
   retention_days: 90
   CI_PROMOTE: false
 
@@ -42,12 +42,7 @@ jobs:
         sudo apt-get install qemu-user-static
 
     - name: Check out code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Fetch all history for all branches and tags so git describe works.
-
-    - name: Check out code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0  # Fetch all history for all branches and tags so git describe works.
 
@@ -69,38 +64,67 @@ jobs:
         shopt -s inherit_errexit
         
         if [[ "${{ env.CI_PROMOTE }}" == "true" ]]; then
-          image_platforms='${{ env.image_platforms }}'
+          image_platform='${{ env.IMAGE_PLATFORM }}'
         else
-          image_platforms='linux/amd64'
+          image_platform='linux/amd64'
         fi
-        
+
         repo_ref='quay.io/tnozicka/images'
         git_revision="$( git rev-parse HEAD )"
-        
+
         digestfile="$( mktemp )"
         skip_header=true
-        while IFS=, read -r context_dir image_tag from_tag; do
+        while IFS=, read -r context_dir image_tag from_tag extra_args; do
           if "${skip_header}"; then
             skip_header=false
             continue;
           fi
-          
+
           image_ref="${repo_ref}:${image_tag}"
           if [[ -z "${from_tag}" ]]; then
             from_ref=""
           else
             from_ref="${repo_ref}:${from_tag}-${{ github.run_number }}-${{ github.run_attempt }}"
           fi
-        
+
           time buildah build --squash --format=docker \
-          --platform="${image_platforms}" \
+          --platform="${image_platform}" \
           --label="org.opencontainers.image.revision=${git_revision}" \
-          --from="${from_ref}" \
+          ${from_ref:+--from="${from_ref}"} \
           --manifest="${image_ref}-${{ github.run_number }}-${{ github.run_attempt }}" \
+          ${extra_args:+${extra_args}} \
           "${context_dir}"
-        
+
           if [[ "${{ env.CI_PROMOTE }}" == "true" ]]; then
             buildah push --digestfile="${digestfile}" "${image_ref}-${{ github.run_number }}-${{ github.run_attempt }}" "${image_ref}"
             echo '' | cat "${digestfile}" -
           fi
         done < image-spec.csv
+
+  gating-tests:
+    name: Wait for gating tests
+    runs-on: ubuntu-24.04
+    needs:
+    - images
+    if: ${{ always() }}
+    steps:
+    - name: Fail if any gating dependency failed
+      if: ${{ contains(needs.*.result, 'failure') }}
+      run: exit 1
+
+  notify-on-failure:
+    name: Notify on failure
+    runs-on: ubuntu-24.04
+    needs:
+    - gating-tests
+    timeout-minutes: 15
+    if: ${{ failure() && github.event_name != 'pull_request' }}
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v6
+
+    - name: Report failures to Slack
+      if: ${{ always() }}
+      uses: ./.github/actions/notify-failure
+      with:
+        slack-url: '${{ secrets.SLACK_WEBHOOK_URL }}'

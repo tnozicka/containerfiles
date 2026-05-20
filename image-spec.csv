@@ -1,4 +1,7 @@
-context_dir,image_tag,from_tag
-./images/tools,tools,
-./images/debug,debug,
-./images/claude,claude,debug
+context_dir,image_tag,from_tag,extra_args
+./images/base/fedora/44,base-fedora-44,,
+./images/golang/base,golang-base,base-fedora-44,
+./images/golang/1.26,golang-1.26,golang-base,
+./images/golang-tools/1.26,golang-tools-1.26,golang-1.26,
+./images/debug,debug,golang-tools-1.26,
+./images/claude,claude,debug,
