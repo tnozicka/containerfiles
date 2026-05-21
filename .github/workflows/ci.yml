@@ -137,8 +137,10 @@ jobs:
             buildah manifest add "${manifest_ref}" "docker://${manifest_ref}-${arch}"
           done
 
-          buildah manifest push --all --digestfile="${digestfile}" "${manifest_ref}" "docker://${repo_ref}:${image_tag}"
-          echo '' | cat "${digestfile}" -
+          if [[ "${{ env.CI_PROMOTE }}" == "true" ]]; then
+            buildah manifest push --all --digestfile="${digestfile}" "${manifest_ref}" "docker://${repo_ref}:${image_tag}"
+            echo '' | cat "${digestfile}" -
+          fi
         done < image-spec.csv
 
   gating-tests:
