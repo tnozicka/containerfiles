@@ -1,6 +1,8 @@
 FROM to-be-replaced-by-local-ref/base:fedora-44
 
-ENV GOPATH=/go \
+USER root:root
+
+ENV GOPATH=/root/go \
     GOROOT=/usr/local/go \
     GOTOOLCHAIN=local
 ENV PATH=${PATH}:${GOROOT}/bin:${GOPATH}/bin
