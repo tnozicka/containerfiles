@@ -20,6 +20,7 @@ on:
 permissions:
   id-token: write
   contents: read
+  packages: write
 
 env:
   retention_days: 90
@@ -44,16 +45,18 @@ jobs:
       with:
         fetch-depth: 0  # Fetch all history for all branches and tags so git describe works.
 
-    - name: Configure promotions
+    - name: Set CI image registry
       shell: bash
-      if: ${{ contains(fromJSON('["push", "schedule"]'), github.event_name) }}
+      run: echo "IMAGE_REPO_REF_CI=ghcr.io/${GITHUB_REPOSITORY@L}" >> "${GITHUB_ENV}"
+
+    - name: Log in to CI container image registry
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -euEo pipefail +x
         shopt -s inherit_errexit
 
-        echo "CI_PROMOTE=true" | tee -a ${GITHUB_ENV}
-
-        echo '${{ secrets.QUAY_PASSWORD }}' | buildah login 'quay.io/tnozicka/images' -u='${{ secrets.QUAY_USER }}' --password-stdin
+        echo "${GITHUB_TOKEN}" | buildah login "${{ env.IMAGE_REPO_REF_CI }}" -u="${GITHUB_ACTOR}" --password-stdin
 
     - name: Build images
       shell: bash
@@ -62,7 +65,7 @@ jobs:
         shopt -s inherit_errexit
 
         arch='${{ matrix.arch }}'
-        repo_ref='quay.io/tnozicka/images'
+        repo_ref="${{ env.IMAGE_REPO_REF_CI }}"
         git_revision="$( git rev-parse HEAD )"
         suffix='${{ github.run_number }}-${{ github.run_attempt }}'
 
@@ -88,22 +91,41 @@ jobs:
           ${extra_args:+${extra_args}} \
           "${context_dir}"
 
-          if [[ "${{ env.CI_PROMOTE }}" == "true" ]]; then
-            buildah push --digestfile="${digestfile}" "${image_ref}"
-            echo '' | cat "${digestfile}" -
-          fi
+          buildah push --digestfile="${digestfile}" "${image_ref}"
+          echo '' | cat "${digestfile}" -
         done < image-spec.csv
 
-  manifest:
-    name: Assemble multi-arch manifests
+  manifest-lists:
+    name: Create manifest lists
     runs-on: ubuntu-24.04
     needs:
     - build
-    if: ${{ contains(fromJSON('["push", "schedule"]'), github.event_name) }}
     timeout-minutes: 30
     steps:
     - name: Check out code
       uses: actions/checkout@v6
+
+    - name: Configure promotions
+      shell: bash
+      if: ${{ contains(fromJSON('["push", "schedule"]'), github.event_name) }}
+      run: |
+        set -euEo pipefail +x
+        shopt -s inherit_errexit
+
+        echo "CI_PROMOTE=true" | tee -a "${GITHUB_ENV}"
+
+    - name: Set CI image registry
+      shell: bash
+      run: echo "IMAGE_REPO_REF_CI=ghcr.io/${GITHUB_REPOSITORY@L}" >> "${GITHUB_ENV}"
+
+    - name: Log in to CI container image registry
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        set -euEo pipefail +x
+        shopt -s inherit_errexit
+
+        echo "${GITHUB_TOKEN}" | buildah login "${{ env.IMAGE_REPO_REF_CI }}" -u="${GITHUB_ACTOR}" --password-stdin
 
     - name: Log in to quay
       shell: bash
@@ -113,7 +135,7 @@ jobs:
 
         echo '${{ secrets.QUAY_PASSWORD }}' | buildah login 'quay.io/tnozicka/images' -u='${{ secrets.QUAY_USER }}' --password-stdin
 
-    - name: Assemble manifests
+    - name: Assemble images
       shell: bash
       run: |
         set -euExo pipefail
@@ -130,15 +152,18 @@ jobs:
             continue;
           fi
 
-          manifest_ref="${repo_ref}:${image_tag}-${suffix}"
+          ci_image_ref="${{ env.IMAGE_REPO_REF_CI }}:${image_tag}-${suffix}"
+          public_image_ref="${repo_ref}:${image_tag}"
 
-          buildah manifest create "${manifest_ref}"
+          buildah manifest create "${ci_image_ref}"
           for arch in amd64 arm64; do
-            buildah manifest add "${manifest_ref}" "docker://${manifest_ref}-${arch}"
+            buildah manifest add "${ci_image_ref}" "docker://${ci_image_ref}-${arch}"
           done
 
+          buildah manifest push --all --digestfile="${digestfile}" "${ci_image_ref}" "docker://${ci_image_ref}"
+
           if [[ "${{ env.CI_PROMOTE }}" == "true" ]]; then
-            buildah manifest push --all --digestfile="${digestfile}" "${manifest_ref}" "docker://${repo_ref}:${image_tag}"
+            skopeo copy --all --digestfile="${digestfile}" "docker://${ci_image_ref}" "docker://${public_image_ref}"
             echo '' | cat "${digestfile}" -
           fi
         done < image-spec.csv
@@ -148,7 +173,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
     - build
-    - manifest
+    - manifest-lists
     if: ${{ always() }}
     steps:
     - name: Fail if any gating dependency failed
