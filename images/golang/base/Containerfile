@@ -9,6 +9,6 @@ COPY ./bin/* /usr/local/libexec/glasswing-images/
 COPY ./lib/* /usr/local/lib/glasswing-images/
 
 RUN microdnf update -y && \
-    microdnf install -y git make && \
+    microdnf install -y git make gcc && \
     microdnf clean all && \
     rm -rf /var/cache/dnf/*
