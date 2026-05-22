@@ -2,6 +2,7 @@ FROM to-be-replaced-by-local-ref/golang:1.26
 
 RUN go install github.com/mikefarah/yq/v4@v4.53.2 && \
     go install helm.sh/helm/v4/cmd/helm@v4.2.0 && \
+    go install golang.org/x/vuln/cmd/govulncheck@v1.1.4 && \
     mkdir -p /go/src/k8s.io/ && \
     pushd /go/src/k8s.io/ && \
     git clone --depth=1 --branch v1.36.1 https://github.com/kubernetes/kubernetes.git && \
