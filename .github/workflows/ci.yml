@@ -45,6 +45,10 @@ jobs:
       with:
         fetch-depth: 0  # Fetch all history for all branches and tags so git describe works.
 
+    - name: Set up rootless container runtime dir
+      shell: bash
+      run: echo "XDG_RUNTIME_DIR=$( mktemp -d )" >> "${GITHUB_ENV}"
+
     - name: Set CI image registry
       shell: bash
       run: echo "IMAGE_REPO_REF_CI=ghcr.io/${GITHUB_REPOSITORY@L}" >> "${GITHUB_ENV}"
@@ -104,6 +108,10 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v6
+
+    - name: Set up rootless container runtime dir
+      shell: bash
+      run: echo "XDG_RUNTIME_DIR=$( mktemp -d )" >> "${GITHUB_ENV}"
 
     - name: Configure promotions
       shell: bash
