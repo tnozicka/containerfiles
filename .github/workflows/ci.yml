@@ -127,7 +127,7 @@ jobs:
 
         echo "${GITHUB_TOKEN}" | buildah login "${{ env.IMAGE_REPO_REF_CI }}" -u="${GITHUB_ACTOR}" --password-stdin
 
-    - name: Log in to quay
+    - name: Log in to quay.io
       shell: bash
       run: |
         set -euEo pipefail +x
@@ -135,13 +135,20 @@ jobs:
 
         echo '${{ secrets.QUAY_PASSWORD }}' | buildah login 'quay.io/tnozicka/images' -u='${{ secrets.QUAY_USER }}' --password-stdin
 
+    - name: Log in to docker.io
+      shell: bash
+      run: |
+        set -euEo pipefail +x
+        shopt -s inherit_errexit
+
+        echo '${{ secrets.DOCKERHUB_PASSWORD }}' | buildah login 'docker.io/tnozicka/images' -u='${{ secrets.DOCKERHUB_USER }}' --password-stdin
+
     - name: Assemble images
       shell: bash
       run: |
         set -euExo pipefail
         shopt -s inherit_errexit
 
-        repo_ref='quay.io/tnozicka/images'
         suffix='${{ github.run_number }}-${{ github.run_attempt }}'
 
         digestfile="$( mktemp )"
@@ -153,7 +160,6 @@ jobs:
           fi
 
           ci_image_ref="${{ env.IMAGE_REPO_REF_CI }}:${image_tag}-${suffix}"
-          public_image_ref="${repo_ref}:${image_tag}"
 
           buildah manifest create "${ci_image_ref}"
           for arch in amd64 arm64; do
@@ -163,8 +169,12 @@ jobs:
           buildah manifest push --all --digestfile="${digestfile}" "${ci_image_ref}" "docker://${ci_image_ref}"
 
           if [[ "${{ env.CI_PROMOTE }}" == "true" ]]; then
-            skopeo copy --all --digestfile="${digestfile}" "docker://${ci_image_ref}" "docker://${public_image_ref}"
-            echo '' | cat "${digestfile}" -
+            for repo_ref in 'quay.io/tnozicka/images' 'docker.io/tnozicka/images'; do
+              public_image_ref="${repo_ref}:${image_tag}"
+
+              skopeo copy --all --digestfile="${digestfile}" "docker://${ci_image_ref}" "docker://${public_image_ref}"
+              echo '' | cat "${digestfile}" -
+            done
           fi
         done < image-spec.csv
 
