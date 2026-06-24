@@ -2,7 +2,9 @@ FROM debug
 
 RUN dnf install -y hugo npm helm dos2unix yamllint pip buildah podman skopeo opentofu detox && \
     dnf clean all && \
-    rm -rf /var/cache/dnf/*
+    rm -rf /var/cache/dnf/* && \
+    go install github.com/github/github-mcp-server/cmd/github-mcp-server@v1.4.0 && \
+    go install github.com/cli/cli/v2/cmd/gh@v2.95.0
 
 ENV HOME=/home/claude-install
 ENV PATH="${HOME}/.local/bin:${PATH}"
