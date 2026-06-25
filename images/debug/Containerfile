@@ -1,6 +1,6 @@
 FROM golang-tools-1.26
 
-RUN dnf install -y procps-ng inotify-tools stress stress-ng vim vim-powerline powerline tmux tmux-powerline tree jq && \
+RUN dnf install -y procps-ng iputils mtr iproute inotify-tools stress stress-ng vim vim-powerline powerline tmux tmux-powerline tree jq curl wget && \
     dnf clean all && \
     rm -rf /var/cache/dnf/*
 
