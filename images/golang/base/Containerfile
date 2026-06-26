@@ -2,10 +2,11 @@ FROM to-be-replaced-by-local-ref/base:fedora-44
 
 USER root:root
 
-ENV GOPATH=/root/go \
+ENV GOPATH=/tmp/go \
+    GOBIN=/usr/local/bin \
     GOROOT=/usr/local/go \
     GOTOOLCHAIN=local
-ENV PATH=${PATH}:${GOROOT}/bin:${GOPATH}/bin
+ENV PATH=${PATH}:${GOROOT}/bin:${GOBIN}
 
 COPY ./bin/* /usr/local/libexec/glasswing-images/
 COPY ./lib/* /usr/local/lib/glasswing-images/

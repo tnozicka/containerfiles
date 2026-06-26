@@ -9,7 +9,7 @@ RUN go install github.com/mikefarah/yq/v4@v4.53.2 && \
     git clone --depth=1 --branch v1.36.1 https://github.com/kubernetes/kubernetes.git && \
     cd ./kubernetes && \
     make WHAT=cmd/kubectl && \
-    install -m 0755 /go/src/k8s.io/kubernetes/_output/bin/kubectl "${GOPATH}/bin/kubectl" && \
+    install -m 0755 /go/src/k8s.io/kubernetes/_output/bin/kubectl "${GOBIN}/kubectl" && \
     popd && \
     rm -rf /go/src/k8s.io/ && \
     go clean -cache -testcache -modcache -fuzzcache && \
