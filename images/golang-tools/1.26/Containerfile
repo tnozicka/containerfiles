@@ -1,6 +1,9 @@
 FROM to-be-replaced-by-local-ref/golang:1.26
 
-RUN go install github.com/mikefarah/yq/v4@v4.53.2 && \
+RUN microdnf install -y yamllint detox && \
+    microdnf clean all && \
+    rm -rf /var/cache/dnf/* && \
+    go install github.com/mikefarah/yq/v4@v4.53.2 && \
     go install helm.sh/helm/v4/cmd/helm@v4.2.0 && \
     go install golang.org/x/vuln/cmd/govulncheck@v1.1.4 && \
     go install github.com/tnozicka/ktools/cmd/ktool@v0.0.1 && \
