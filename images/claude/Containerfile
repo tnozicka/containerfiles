@@ -1,6 +1,6 @@
 FROM debug
 
-RUN dnf install -y hugo npm helm dos2unix yamllint pip buildah podman skopeo opentofu detox rust cargo && \
+RUN dnf install -y hugo npm helm dos2unix yamllint pip buildah podman skopeo opentofu detox rust cargo gnuplot-minimal && \
     dnf clean all && \
     rm -rf /var/cache/dnf/* && \
     go install github.com/github/github-mcp-server/cmd/github-mcp-server@v1.4.0 && \
